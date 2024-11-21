@@ -45,7 +45,7 @@ ax.set_zticks(ranges[axis[zaxis]])
 ax.set_xlabel(axis[xaxis])
 ax.set_ylabel(axis[yaxis])
 ax.set_zlabel(axis[zaxis])
-fig.show()
+#fig.show()
 
 # %%
 import plotly.io as pio

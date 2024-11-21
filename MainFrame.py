@@ -7,7 +7,7 @@ import numpy as np
 
 class MainFrame(wx.Frame):
     def __init__(self, parent, title = "H2 Gui"):
-        super().__init__(parent, title=title, size=(1000, 600))
+        super().__init__(parent, title=title, size=(1200, 800))
 
         # Panel
         panel = wx.Panel(self)
@@ -41,7 +41,7 @@ class MainFrame(wx.Frame):
         control_sizer.Add(update_button, 0, wx.ALL | wx.CENTER, 10)
 
         # Right-side graph (Matplotlib canvas)
-        self.figure = Figure(figsize=(5, 4))
+        self.figure = Figure(figsize=(8, 6))
         self.canvas = FigureCanvas(panel, -1, self.figure)
 
         # Add panels to sizer
@@ -51,12 +51,19 @@ class MainFrame(wx.Frame):
         # Load data and initialize graph
         self.data = pd.read_csv("tempTable.csv")
         self.data["lambda"] = 1.0 / self.data["phi"]
+        self.tooltip = wx.ToolTip("")
+        self.tooltip.Enable(False)  # Start with tooltips disabled
+        self.SetToolTip(self.tooltip)
+
+        # Bind mouse motion event for interactivity
+        self.canvas.mpl_connect("motion_notify_event", self.on_hover)
+
         self.update_graph(None)
 
     def update_graph(self, event):
-        ax = self.figure.add_subplot(projection='3d')
+        self.ax = self.figure.add_subplot(projection='3d')
         self.figure.clear()
-        ax = self.figure.add_subplot(111, projection='3d')
+        self.ax = self.figure.add_subplot(111, projection='3d')
 
         # Extract axis selections
         xaxis = self.xaxis_choice.GetSelection()
@@ -74,24 +81,56 @@ class MainFrame(wx.Frame):
         where = np.invert(subData["completed"].to_numpy())
 
         # Plot data
-        ax.scatter(
-            subData[axis[xaxis]][where],
-            subData[axis[yaxis]][where],
-            subData[axis[zaxis]][where],
+        self.points = subData[where]  # Save for hover functionality
+        self.scatter = self.ax.scatter(
+            self.points[axis[xaxis]],
+            self.points[axis[yaxis]],
+            self.points[axis[zaxis]],
             alpha=1
         )
 
         # Set axis limits and ticks
-        ax.set_xlim([ranges[axis[xaxis]].min(), ranges[axis[xaxis]].max()])
-        ax.set_ylim([ranges[axis[yaxis]].min(), ranges[axis[yaxis]].max()])
-        ax.set_zlim([ranges[axis[zaxis]].min(), ranges[axis[zaxis]].max()])
+        self.ax.set_xlim([ranges[axis[xaxis]].min(), ranges[axis[xaxis]].max()])
+        self.ax.set_ylim([ranges[axis[yaxis]].min(), ranges[axis[yaxis]].max()])
+        self.ax.set_zlim([ranges[axis[zaxis]].min(), ranges[axis[zaxis]].max()])
 
-        ax.set_xticks(ranges[axis[xaxis]])
-        ax.set_yticks(ranges[axis[yaxis]])
-        ax.set_zticks(ranges[axis[zaxis]])
+        self.ax.set_xticks(np.linspace(ranges[axis[xaxis]].min(), ranges[axis[xaxis]].max(), 5))
+        self.ax.set_yticks(np.linspace(ranges[axis[yaxis]].min(), ranges[axis[yaxis]].max(), 5))
+        self.ax.set_zticks(np.linspace(ranges[axis[zaxis]].min(), ranges[axis[zaxis]].max(), 5))
 
-        ax.set_xlabel(axis[xaxis])
-        ax.set_ylabel(axis[yaxis])
-        ax.set_zlabel(axis[zaxis])
+        self.ax.set_xlabel(axis[xaxis], labelpad=20)
+        self.ax.set_ylabel(axis[yaxis], labelpad=20)
+        self.ax.set_zlabel(axis[zaxis], labelpad=20)
 
         self.canvas.draw()
+
+    def on_hover(self, event):
+        if event.inaxes == self.ax:
+            # Get the mouse position in data coordinates
+            x, y, z = event.xdata, event.ydata, event.zdata
+
+            if x is None or y is None or z is None:
+                self.tooltip.Enable(False)
+                return
+
+            # Check proximity to points
+            distances = np.sqrt(
+                (self.points[self.axis_labels[0]] - x) ** 2 +
+                (self.points[self.axis_labels[1]] - y) ** 2 +
+                (self.points[self.axis_labels[2]] - z) ** 2
+            )
+            min_idx = distances.idxmin()
+
+            # Set tooltip if close enough
+            if distances[min_idx] < 0.5:  # Adjust tolerance as needed
+                row = self.points.iloc[min_idx]
+                info = (
+                    f"p: {row['p']:.2f}\n"
+                    f"Tu: {row['Tu']:.2f}\n"
+                    f"phi: {row['phi']:.2f}\n"
+                    f"egr: {row['egr']:.2f}"
+                )
+                self.tooltip.SetTip(info)
+                self.tooltip.Enable(True)
+            else:
+                self.tooltip.Enable(False)
