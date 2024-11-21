@@ -1,53 +1,97 @@
 import wx
-import wx.html2 as webview
-import plotly.graph_objs as go
-import plotly.io as pio
-from bs4 import BeautifulSoup
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.figure import Figure
+import pandas as pd
+import numpy as np
+
 
 class MainFrame(wx.Frame):
-    def __init__(self, *args, **kw):
-        super(MainFrame, self).__init__(*args, **kw)
+    def __init__(self, parent, title = "H2 Gui"):
+        super().__init__(parent, title=title, size=(1000, 600))
 
-        # Set up the main panel
-        self.panel = wx.Panel(self)
+        # Panel
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        panel.SetSizer(sizer)
 
-        # Create a BoxSizer for horizontal layout
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # Left panel for commands
-        left_panel = wx.Panel(self.panel)
-        left_sizer = wx.BoxSizer(wx.VERTICAL)
-        combo_label = wx.StaticText(left_panel, label="Choose Option:")
-        self.combo_box = wx.ComboBox(left_panel, choices=["Option 1", "Option 2", "Option 3"])
-        left_sizer.Add(combo_label, 0, wx.ALL | wx.EXPAND, 5)
-        left_sizer.Add(self.combo_box, 0, wx.ALL | wx.EXPAND, 5)
-        left_panel.SetSizer(left_sizer)
+        # Left-side controls (dropdown menus)
+        control_panel = wx.Panel(panel)
+        control_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_panel.SetSizer(control_sizer)
 
-        # Right panel for Plotly plot
-        right_panel = wx.Panel(self.panel)
-        # Create a Plotly figure to display
-        fig = go.Figure(data=go.Scatter(y=[2, 3, 1, 4, 5], mode='lines', name='Sample Line'))
+        self.axis_labels = ["p", "Tu", "phi", "egr"]
 
-        # Convert Plotly figure to HTML
-        html_str = pio.to_html(fig, full_html=True)
+        self.xaxis_choice = wx.Choice(control_panel, choices=self.axis_labels)
+        self.yaxis_choice = wx.Choice(control_panel, choices=self.axis_labels)
+        self.zaxis_choice = wx.Choice(control_panel, choices=self.axis_labels)
 
-        # Use WebView to display the HTML
-        soup = BeautifulSoup(html_str, 'html.parser')
-        body_content = soup.body.decode_contents()  # Extract inner HTML of the body tag
-        self.web_view = webview.WebView.New(right_panel, backend=wx.html2.WebViewBackendEdge)
-        self.web_view.SetPage(body_content, "about:blank")
-        #self.web_view.LoadURL("http://www.google.com")
-        # Sizer for right panel to hold the WebView
-        right_sizer = wx.BoxSizer(wx.VERTICAL)
-        right_sizer.Add(self.web_view, 1, wx.EXPAND)
-        right_panel.SetSizer(right_sizer)
+        self.xaxis_choice.SetSelection(3)  # Default selection
+        self.yaxis_choice.SetSelection(1)
+        self.zaxis_choice.SetSelection(2)
 
-        # Add both left and right panels to the main sizer
-        main_sizer.Add(left_panel, 0, wx.EXPAND | wx.ALL, 10)  # Left side with ComboBox
-        main_sizer.Add(right_panel, 1, wx.EXPAND | wx.ALL, 10)  # Right side with Plotly plot
+        control_sizer.Add(wx.StaticText(control_panel, label="X Axis"), 0, wx.ALL, 5)
+        control_sizer.Add(self.xaxis_choice, 0, wx.ALL | wx.EXPAND, 5)
+        control_sizer.Add(wx.StaticText(control_panel, label="Y Axis"), 0, wx.ALL, 5)
+        control_sizer.Add(self.yaxis_choice, 0, wx.ALL | wx.EXPAND, 5)
+        control_sizer.Add(wx.StaticText(control_panel, label="Z Axis"), 0, wx.ALL, 5)
+        control_sizer.Add(self.zaxis_choice, 0, wx.ALL | wx.EXPAND, 5)
 
-        # Set main sizer
-        self.panel.SetSizer(main_sizer)
+        update_button = wx.Button(control_panel, label="Update Graph")
+        update_button.Bind(wx.EVT_BUTTON, self.update_graph)
+        control_sizer.Add(update_button, 0, wx.ALL | wx.CENTER, 10)
 
-        # Set frame size
-        self.SetSize((800, 600))
-        self.SetTitle("H2 Gui")
+        # Right-side graph (Matplotlib canvas)
+        self.figure = Figure(figsize=(5, 4))
+        self.canvas = FigureCanvas(panel, -1, self.figure)
+
+        # Add panels to sizer
+        sizer.Add(control_panel, 0, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.canvas, 1, wx.EXPAND | wx.ALL, 10)
+
+        # Load data and initialize graph
+        self.data = pd.read_csv("tempTable.csv")
+        self.data["lambda"] = 1.0 / self.data["phi"]
+        self.update_graph(None)
+
+    def update_graph(self, event):
+        ax = self.figure.add_subplot(projection='3d')
+        self.figure.clear()
+        ax = self.figure.add_subplot(111, projection='3d')
+
+        # Extract axis selections
+        xaxis = self.xaxis_choice.GetSelection()
+        yaxis = self.yaxis_choice.GetSelection()
+        zaxis = self.zaxis_choice.GetSelection()
+
+        # Get unused axis for slicing
+        waxis = [i for i in range(len(self.axis_labels)) if i not in [xaxis, yaxis, zaxis]][0]
+        isoID = 0
+        axis = self.axis_labels
+
+        # Process data
+        ranges = {a: np.unique(self.data[a].to_numpy()) for a in axis}
+        subData = self.data.loc[self.data[axis[waxis]] == ranges[axis[waxis]][isoID]]
+        where = np.invert(subData["completed"].to_numpy())
+
+        # Plot data
+        ax.scatter(
+            subData[axis[xaxis]][where],
+            subData[axis[yaxis]][where],
+            subData[axis[zaxis]][where],
+            alpha=1
+        )
+
+        # Set axis limits and ticks
+        ax.set_xlim([ranges[axis[xaxis]].min(), ranges[axis[xaxis]].max()])
+        ax.set_ylim([ranges[axis[yaxis]].min(), ranges[axis[yaxis]].max()])
+        ax.set_zlim([ranges[axis[zaxis]].min(), ranges[axis[zaxis]].max()])
+
+        ax.set_xticks(ranges[axis[xaxis]])
+        ax.set_yticks(ranges[axis[yaxis]])
+        ax.set_zticks(ranges[axis[zaxis]])
+
+        ax.set_xlabel(axis[xaxis])
+        ax.set_ylabel(axis[yaxis])
+        ax.set_zlabel(axis[zaxis])
+
+        self.canvas.draw()
