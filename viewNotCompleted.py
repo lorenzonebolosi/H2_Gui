@@ -70,37 +70,37 @@ fig = px.scatter_3d(subData.loc[subData["completed"]],
 #               z=axis[zaxis],
 #               color_discrete_sequence=["red"]).data[0])
 
-fig.update_layout(
-    scene = dict(
-        xaxis = dict(
-            tickmode = 'array',
-            tickvals=[v for v in ranges[axis[xaxis]]],
-            range=[
-                ranges[axis[xaxis]].min()-0.05*(ranges[axis[xaxis]].max() - ranges[axis[xaxis]].min()),
-                ranges[axis[xaxis]].max()+0.05*(ranges[axis[xaxis]].max() - ranges[axis[xaxis]].min())
-                ],
-            title=dict(text=axis[xaxis])
-            ,),
-        yaxis = dict(
-            tickmode = 'array',
-            tickvals=[v for v in ranges[axis[yaxis]]],
-            range=[
-                ranges[axis[yaxis]].min()-0.05*(ranges[axis[yaxis]].max() - ranges[axis[yaxis]].min()),
-                ranges[axis[yaxis]].max()+0.05*(ranges[axis[yaxis]].max() - ranges[axis[yaxis]].min())
-                ],
-            title=dict(text=axis[yaxis]),
-            ),
-        zaxis = dict(
-            tickmode = 'array',
-            tickvals=[v for v in ranges[axis[zaxis]]],
-            range=[
-                ranges[axis[zaxis]].min()-0.05*(ranges[axis[zaxis]].max() - ranges[axis[zaxis]].min()),
-                ranges[axis[zaxis]].max()+0.05*(ranges[axis[zaxis]].max() - ranges[axis[zaxis]].min())
-                ],
-            title=dict(text=axis[zaxis]),
-            ),
-        )
-    )
+# fig.update_layout(
+#     scene = dict(
+#         xaxis = dict(
+#             tickmode = 'array',
+#             tickvals=[v for v in ranges[axis[xaxis]]],
+#             range=[
+#                 ranges[axis[xaxis]].min()-0.05*(ranges[axis[xaxis]].max() - ranges[axis[xaxis]].min()),
+#                 ranges[axis[xaxis]].max()+0.05*(ranges[axis[xaxis]].max() - ranges[axis[xaxis]].min())
+#                 ],
+#             title=dict(text=axis[xaxis])
+#             ,),
+#         yaxis = dict(
+#             tickmode = 'array',
+#             tickvals=[v for v in ranges[axis[yaxis]]],
+#             range=[
+#                 ranges[axis[yaxis]].min()-0.05*(ranges[axis[yaxis]].max() - ranges[axis[yaxis]].min()),
+#                 ranges[axis[yaxis]].max()+0.05*(ranges[axis[yaxis]].max() - ranges[axis[yaxis]].min())
+#                 ],
+#             title=dict(text=axis[yaxis]),
+#             ),
+#         zaxis = dict(
+#             tickmode = 'array',
+#             tickvals=[v for v in ranges[axis[zaxis]]],
+#             range=[
+#                 ranges[axis[zaxis]].min()-0.05*(ranges[axis[zaxis]].max() - ranges[axis[zaxis]].min()),
+#                 ranges[axis[zaxis]].max()+0.05*(ranges[axis[zaxis]].max() - ranges[axis[zaxis]].min())
+#                 ],
+#             title=dict(text=axis[zaxis]),
+#             ),
+#         )
+#     )
 
 fig.update_traces(
     marker = dict(
@@ -108,32 +108,4 @@ fig.update_traces(
         )
     )
 
-# Update layout with dropdown
-fig.update_layout(
-    updatemenus=[
-        dict(
-            buttons=[
-                dict(
-                    args=["visible", [True, False]],  # Show only Trace 1
-                    label="Show Trace 1",
-                    method="update"
-                ),
-                dict(
-                    args=["visible", [False, True]],  # Show only Trace 2
-                    label="Show Trace 2",
-                    method="update"
-                ),
-                dict(
-                    args=["visible", [True, True]],  # Show both traces
-                    label="Show Both",
-                    method="update"
-                )
-            ],
-            direction="down",  # Dropdown menu direction
-            showactive=True
-        )
-    ]
-)
-
-# Show the figure
 fig.show()
