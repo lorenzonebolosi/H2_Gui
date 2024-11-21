@@ -1,9 +1,9 @@
 import wx
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
+from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 import numpy as np
-
 
 class MainFrame(wx.Frame):
     def __init__(self, parent, title = "H2 Gui"):
@@ -56,9 +56,30 @@ class MainFrame(wx.Frame):
         self.SetToolTip(self.tooltip)
 
         # Bind mouse motion event for interactivity
-        self.canvas.mpl_connect("motion_notify_event", self.on_hover)
+        self.canvas.mpl_connect("motion_notify_event", self.on_mouse_move)
+        self.status_bar = self.CreateStatusBar()
 
         self.update_graph(None)
+
+    def on_mouse_move(self, event):
+        if event.inaxes != self.ax:
+            return
+
+        # Get the mouse coordinates (in axes' data space)
+        mouse_x, mouse_y = event.xdata, event.ydata
+        min_distance = float('inf')
+        closest_point = None
+
+        # Find the closest data point to the mouse position
+        for xi, yi, zi in zip(self.x, self.y, self.z):
+            distance = np.sqrt((mouse_x - xi) ** 2 + (mouse_y - yi) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                closest_point = (xi, yi, zi)
+
+        # Update the status bar with the closest point value
+        if closest_point:
+            self.status_bar.SetStatusText(f"Closest point: {closest_point}")
 
     def update_graph(self, event):
         self.ax = self.figure.add_subplot(projection='3d')
@@ -82,6 +103,9 @@ class MainFrame(wx.Frame):
 
         # Plot data
         self.points = subData[where]  # Save for hover functionality
+        self.x = self.points[axis[xaxis]]
+        self.y = self.points[axis[yaxis]]
+        self.z = self.points[axis[zaxis]]
         self.scatter = self.ax.scatter(
             self.points[axis[xaxis]],
             self.points[axis[yaxis]],
@@ -106,29 +130,37 @@ class MainFrame(wx.Frame):
 
     def on_hover(self, event):
         if event.inaxes == self.ax:
-            # Get the mouse position in data coordinates
-            x, y, z = event.xdata, event.ydata, event.zdata
+            # Get the 3D data points
+            x_data = self.points[self.axis_labels[3]].to_numpy()
+            y_data = self.points[self.axis_labels[1]].to_numpy()
+            z_data = self.points[self.axis_labels[2]].to_numpy()
+            print("Test")
 
-            if x is None or y is None or z is None:
-                self.tooltip.Enable(False)
-                return
+            # Transform the 3D data to 2D screen coordinates
+            # We need to convert data coordinates to display coordinates using ax.transData
+            transformed_points = [self.ax.transData.transform([x, y]) for x, y in zip(x_data, y_data)]
 
-            # Check proximity to points
-            distances = np.sqrt(
-                (self.points[self.axis_labels[0]] - x) ** 2 +
-                (self.points[self.axis_labels[1]] - y) ** 2 +
-                (self.points[self.axis_labels[2]] - z) ** 2
-            )
-            min_idx = distances.idxmin()
+            # Extract the 2D screen coordinates
+            screen_x = [point[0] for point in transformed_points]
+            screen_y = [point[1] for point in transformed_points]
 
+            # Compare mouse position to projected points
+            mouse_x, mouse_y = event.x, event.y
+            print((
+                    f"Mouse x: {mouse_x:.2f}\n"
+                    f"Mouse y: {mouse_y:.2f}\n"
+                ))
+            distances = np.sqrt((np.array(screen_x) - mouse_x) ** 2 + (np.array(screen_y) - mouse_y) ** 2)
+            min_idx = np.argmin(distances)
+            print(f"p: {x_data[min_idx]:.2f}\n"
+                    f"Tu: {y_data[min_idx]:.2f}\n"
+                    f"phi: {z_data[min_idx]:.2f}\n")
             # Set tooltip if close enough
-            if distances[min_idx] < 0.5:  # Adjust tolerance as needed
-                row = self.points.iloc[min_idx]
+            if distances[min_idx] < 10:  # Adjust tolerance as needed
                 info = (
-                    f"p: {row['p']:.2f}\n"
-                    f"Tu: {row['Tu']:.2f}\n"
-                    f"phi: {row['phi']:.2f}\n"
-                    f"egr: {row['egr']:.2f}"
+                    f"p: {x_data[min_idx]:.2f}\n"
+                    f"Tu: {y_data[min_idx]:.2f}\n"
+                    f"phi: {z_data[min_idx]:.2f}\n"
                 )
                 self.tooltip.SetTip(info)
                 self.tooltip.Enable(True)
