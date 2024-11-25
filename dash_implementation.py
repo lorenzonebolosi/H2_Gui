@@ -14,32 +14,40 @@ axis = ["p", "Tu", "phi", "egr"]
 ranges = {a: np.unique(data[a].to_numpy()) for a in axis}
 
 app.layout = html.Div([
-    # Dropdowns for X, Y, Z axes
+    # Left container for dropdowns and slider
     html.Div([
-        html.Label('X-axis:'),
-        dcc.Dropdown(id='xaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[0]),
-    ], style={'width': '24%', 'display': 'inline-block'}),
+        # Dropdowns for X, Y, Z axes
+        html.Div([
+            html.Label('X-axis:'),
+            dcc.Dropdown(id='xaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[0]),
+        ], style={'width': '100%', 'marginBottom': '10px'}),
 
+        html.Div([
+            html.Label('Y-axis:'),
+            dcc.Dropdown(id='yaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[1]),
+        ], style={'width': '100%', 'marginBottom': '10px'}),
+
+        html.Div([
+            html.Label('Z-axis:'),
+            dcc.Dropdown(id='zaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[2]),
+        ], style={'width': '100%', 'marginBottom': '10px'}),
+
+        # Dropdown and Slider for 4th dimension
+        html.Div([
+            html.Label('Slice along:'),
+            dcc.Dropdown(id='slice-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[3]),
+            dcc.Slider(id='slice-slider', min=0, max=0, step=1, value=0, marks={}),
+        ], style={'width': '100%', 'marginBottom': '10px'}),
+    ], style={'width': '25%', 'padding': '20px', 'display': 'flex', 'flexDirection': 'column'}),
+
+    # Right container for the graph
     html.Div([
-        html.Label('Y-axis:'),
-        dcc.Dropdown(id='yaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[1]),
-    ], style={'width': '24%', 'display': 'inline-block'}),
+        # 3D Scatter Plot
+        dcc.Graph(id='3d-scatter-plot', style={'height': '100vh', 'width': '100%'})
+    ], style={'width': '80%', 'padding': '10px'})
+], style={'display': 'flex', 'height': '100vh'})
 
-    html.Div([
-        html.Label('Z-axis:'),
-        dcc.Dropdown(id='zaxis-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[2]),
-    ], style={'width': '24%', 'display': 'inline-block'}),
 
-    # Dropdown and Slider for 4th dimension
-    html.Div([
-        html.Label('Slice along:'),
-        dcc.Dropdown(id='slice-dropdown', options=[{'label': ax, 'value': ax} for ax in axis], value=axis[3]),
-        dcc.Slider(id='slice-slider', min=0, max=0, step=1, value=0, marks={}),
-    ], style={'width': '24%', 'display': 'inline-block'}),
-
-    # 3D Scatter Plot
-    dcc.Graph(id='3d-scatter-plot')
-])
 @app.callback(
     [Output('slice-slider', 'min'),
      Output('slice-slider', 'max'),
