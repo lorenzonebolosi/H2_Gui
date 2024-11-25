@@ -24,19 +24,19 @@ df = px.data.stocks().set_index('date')
 columns = df.columns
 
 # Set up well organized controls in a dbc.Card()
-controls = dbc.Card([dbc.FormGroup([dbc.Label("x-axis"),
+controls = dbc.Card([dbc.CardGroup([dbc.Label("x-axis"),
                                     dcc.Dropdown(id='dd_x',
                                                  options= [{'label': k, 'value': k} for k in columns],
                                                   value=columns[0],
                                                 ),
                                    ],),
-                    dbc.FormGroup([dbc.Label("y-axis"),
+                    dbc.CardGroup([dbc.Label("y-axis"),
                                    dcc.Dropdown(id='dd_y',
                                                 options= [{'label': k, 'value': k} for k in columns],
                                                 value=columns[1],
                                                 ),
                                    ],),
-                    dbc.FormGroup([dbc.Label("z-axis"),
+                    dbc.CardGroup([dbc.Label("z-axis"),
                                    dcc.Dropdown(id='dd_z',
                                                 options= [{'label': k, 'value': k} for k in columns],
                                                 value=columns[2],
