@@ -83,6 +83,12 @@ def update_graph(xaxis, yaxis, zaxis, slice_axis, slice_idx):
     print(xaxis,yaxis,zaxis,waxis,waxis_value)
     subData = data[(data.loc[:,waxis] == waxis_value) & data["completed"]]
     #print(subData.info)
+    hover_template = (
+        f"<b>{xaxis}</b>: {{customdata[0]}}<br>"
+        f"<b>{yaxis}</b>: {{customdata[1]}}<br>"
+        f"<b>{zaxis}</b>: {{customdata[2]}}<br>"
+        f"<extra></extra>"
+    )
     # Create 3D scatter plot
     fig = go.Figure(data=go.Scatter3d(
         x=subData[xaxis],
@@ -95,7 +101,14 @@ def update_graph(xaxis, yaxis, zaxis, slice_axis, slice_idx):
             colorscale='turbo',
             colorbar=dict(title='Su'),
             opacity=0.8
-        )
+        ),
+        customdata = np.stack([subData[xaxis], subData[yaxis], subData[zaxis]], axis=-1)
+        #hovertemplate=(
+        #    f"<b>{xaxis}</b>: {x}<br>"
+        #    f"<b>{yaxis}</b>: {y}<br>"
+        #    f"<b>{zaxis}</b>: {z}<br>"
+        #    f"<extra></extra>"
+        #)
     ))
 
     fig.update_layout(
